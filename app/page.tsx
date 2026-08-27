@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { hotels, rooms, naira, cloudinary } from '../lib/data';
 import AvailabilitySearch from './availability-search';
 import ActiveOffers from '../components/ActiveOffers';
+export const dynamic = 'force-dynamic';
 
 const special = [
   { src: cloudinary('ephoenix/annex-ii/special/use1'), alt: 'Annex II - street exterior' },

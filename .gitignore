@@ -7,3 +7,8 @@ BRANCH PHOTOS/
 
 BRANCH PHOTOS/
 public/media/
+
+.copilot-azure/
+.vercel
+public/media/branches/
+

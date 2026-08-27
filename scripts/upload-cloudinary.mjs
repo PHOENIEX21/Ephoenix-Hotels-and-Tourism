@@ -50,7 +50,7 @@ for (const filePath of files) {
     console.log(`${relativePath}${upload.temporary ? ' (compressed)' : ''} -> ${result.secure_url}`);
   } catch (error) {
     failures.push(`${relativePath}: ${error instanceof Error ? error.message : String(error)}`);
-    console.error(`FAILED ${file}: ${failures[failures.length - 1].split(': ').slice(1).join(': ')}`);
+    console.error(`FAILED ${filePath}: ${failures[failures.length - 1].split(': ').slice(1).join(': ')}`);
   } finally {
     if (upload?.temporary) fs.rmSync(upload.source, { force: true });
   }
