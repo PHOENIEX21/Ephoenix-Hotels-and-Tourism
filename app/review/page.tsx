@@ -1,0 +1,9 @@
+'use client';
+
+import { FormEvent, useState } from 'react';
+
+export default function ReviewPage() {
+  const [reference, setReference] = useState(''); const [email, setEmail] = useState(''); const [rating, setRating] = useState('5'); const [body, setBody] = useState(''); const [message, setMessage] = useState(''); const [error, setError] = useState('');
+  async function submit(event: FormEvent) { event.preventDefault(); setError(''); setMessage(''); const response = await fetch('/api/reviews', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reference, email, rating: Number(rating), body }) }); const payload = await response.json(); if (!response.ok) setError(payload.error); else setMessage(payload.message); }
+  return <main style={{ maxWidth: 650, margin: '4rem auto', padding: '0 1rem' }}><h1>Share your stay</h1><p>Use your booking reference and checkout email. Reviews are published after admin approval.</p><form onSubmit={submit} style={{ display: 'grid', gap: '1rem' }}><label>Booking reference<input value={reference} onChange={event => setReference(event.target.value)} required /></label><label>Email<input type="email" value={email} onChange={event => setEmail(event.target.value)} required /></label><label>Rating<select value={rating} onChange={event => setRating(event.target.value)}><option value="5">5 - Excellent</option><option value="4">4 - Very good</option><option value="3">3 - Good</option><option value="2">2 - Fair</option><option value="1">1 - Poor</option></select></label><label>Review<textarea value={body} onChange={event => setBody(event.target.value)} minLength={10} required /></label><button type="submit">Submit review</button>{message ? <p style={{ color: 'green' }}>{message}</p> : null}{error ? <p style={{ color: 'crimson' }}>{error}</p> : null}</form></main>;
+}

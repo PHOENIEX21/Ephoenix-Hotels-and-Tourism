@@ -1,0 +1,9 @@
+.env*
+!.env.example
+node_modules/
+.next/
+
+BRANCH PHOTOS/
+
+BRANCH PHOTOS/
+public/media/
