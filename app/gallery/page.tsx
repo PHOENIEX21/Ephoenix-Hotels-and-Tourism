@@ -22,7 +22,7 @@ const categories = [
   ['Annex II', 'Swimming pool', 'annex-ii/swimming-pool', 3],
   ['Annex II', 'White House City View', 'annex-ii/white-house-city-view', 4],
 ] as const;
-const specialImages = ['use1.jpg', 'use1ngt.jpg', 'use2.png', 'use2dds.jpg', 'use3.jpg', 'z-2', 'z-4', 'z-14', 'z-15', 'z-16', 'z-23', 'z-35', 'z-44', 'z-45', 'z-48', 'z-49', 'z-59', 'z-60', 'z-61', 'z-73', 'z-74'];
+const specialImages = ['use1.jpg', 'use2.png', 'use3.jpg', 'use1ngt.jpg', 'use2dds.jpg', 'z (2).jpg', 'z (4).jpg', 'z (14).jpg', 'z (15).jpg', 'z (16).jpg', 'z (23).jpg', 'z (35).jpg', 'z (44).jpg', 'z (45).jpg', 'z (48).jpg', 'z (49).jpg', 'z (59).jpg', 'z (60).jpg', 'z (61).jpg', 'z (73).jpg', 'z (74).jpg'];
 const swimmingPoolImages = ['use1ngt.png', 'use2dds.jpg', 'use2ngv.jpg', 'z-2', 'z-4', 'z-35', 'z-48', 'z-49'];
 
 export default function GalleryPage() {

@@ -6,7 +6,7 @@ import ActiveOffers from '../components/ActiveOffers';
 import CuratedSlideshow from '../components/CuratedSlideshow';
 export const dynamic = 'force-dynamic';
 
-const specialNames = ['use1', 'use2', 'use3', 'z-2', 'z-4', 'z-14', 'z-15', 'z-16', 'z-23', 'z-35', 'z-44', 'z-45', 'z-48', 'z-49', 'z-59', 'z-60', 'z-61', 'z-73', 'z-74'];
+const specialNames = ['use1.jpg', 'use2.png', 'use3.jpg', 'use1ngt.jpg', 'use2dds.jpg', 'z (2).jpg', 'z (4).jpg', 'z (14).jpg', 'z (15).jpg', 'z (16).jpg', 'z (23).jpg', 'z (35).jpg', 'z (44).jpg', 'z (45).jpg', 'z (48).jpg', 'z (49).jpg', 'z (59).jpg', 'z (60).jpg', 'z (61).jpg', 'z (73).jpg', 'z (74).jpg'];
 const special = curatedImages('ephoenix/annex-ii/special', specialNames).map((src, index) => ({
   src,
   alt: index < 3 ? ['Annex II - special highlight 1', 'Annex II - special highlight 2', 'Annex II - special highlight 3'][index] : `Annex II - special photo ${index + 1}`,

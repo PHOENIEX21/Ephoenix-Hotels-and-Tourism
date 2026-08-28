@@ -2,13 +2,14 @@ export type Hotel = { slug: string; shortName: string; name: string; address: st
 export type RoomType = { hotel: string; name: string; slug: string; price: number; deposit: number; roomNumbers: string[]; image?: string; images?: string[] };
 export type Policy = { item: string; detail: string };
 export const cloudinary = (publicId: string) => `https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'n4m6aaqd'}/image/upload/f_auto,q_auto/${publicId}`;
+const cloudinaryName = (name: string) => name.replace(/\.[^.]+$/, '').replace(/^z \((\d+)\)$/, 'z-$1');
 export const curatedImages = (folder: string, names: string[]) => names
   .map((name, index) => {
     const baseName = name.replace(/\.[^.]+$/, '');
     return { name, order: Number(baseName.match(/^use(\d+)/)?.[1] || Number.MAX_SAFE_INTEGER), index };
   })
   .sort((a, b) => a.order - b.order || a.index - b.index)
-  .map(({ name }) => `${cloudinary(`${folder}/${name.replace(/\.[^.]+$/, '')}`)}${/\.[^.]+$/.test(name) ? '' : '.jpg'}`);
+  .map(({ name }) => `${cloudinary(`${folder}/${cloudinaryName(name)}`)}${/\.[^.]+$/.test(name) ? '' : '.jpg'}`);
 const curatedNumbers: Record<string, number[]> = {
   'ephoenix/annex-ii/exterior': [1, 2, 4, 5],
   'ephoenix/annex-ii/lobby': [1, 2, 3, 4, 5, 6, 8, 9],
