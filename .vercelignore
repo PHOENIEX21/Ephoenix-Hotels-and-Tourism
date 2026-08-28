@@ -1,4 +1,7 @@
-BRANCH PHOTOS
+BRANCH PHOTOS/
+BRANCH PHOTOS/**
+public/media/
+public/media/**
 .env
 .env.local
 .next
