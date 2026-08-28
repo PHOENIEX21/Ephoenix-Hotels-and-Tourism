@@ -61,6 +61,7 @@ model Hotel {
   createdAt   DateTime    @default(now())
   offers      Offer[]
   reviews     Review[]
+  users       User[]
 }
 
 model RoomType {
@@ -128,6 +129,7 @@ model User {
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   auditLogs     AuditLog[]
+  hotel         Hotel?      @relation(fields: [hotelId], references: [id], onDelete: SetNull)
 }
 
 model Account {
