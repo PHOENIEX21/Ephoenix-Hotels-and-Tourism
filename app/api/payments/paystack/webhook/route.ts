@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (event === 'charge.success' || event === 'transaction.success') {
-      const payment = await prisma.payment.findFirst({ where: { providerReference: data.reference, provider: 'paystack' } });
+      const payment = await prisma.payment.findFirst({ where: { providerReference: data.reference, provider: 'paystack' }, include: { order: { include: { items: true } } } });
       if (payment) {
         // Amount verification (belt-and-braces per §9): never confirm a booking for a
         // different amount than we recorded. data.amount is in kobo.
@@ -36,13 +36,17 @@ export async function POST(request: NextRequest) {
           where: { id: payment.id },
           data: { status: PaymentStatus.SUCCESSFUL, paidAt: data.paid_at ? new Date(data.paid_at) : new Date() },
         });
-        await prisma.booking.update({
-          where: { id: payment.bookingId },
-          data: { status: BookingStatus.CONFIRMED },
-        });
+        if (payment.bookingId) await prisma.booking.update({ where: { id: payment.bookingId }, data: { status: BookingStatus.CONFIRMED } });
+        if (payment.orderId && payment.order) {
+          await prisma.booking.updateMany({ where: { id: { in: payment.order.items.map(item => item.bookingId) } }, data: { status: BookingStatus.CONFIRMED } });
+          await prisma.order.update({ where: { id: payment.orderId }, data: { status: 'CONFIRMED' } });
+        }
         if (!wasSuccessful) {
-          await writeAudit(null, 'BOOKING_CONFIRMED', 'Booking', payment.bookingId, { reference: data.reference, provider: 'paystack', amountKobo: payment.amountKobo });
-          await sendBookingConfirmationEmail(payment.bookingId);
+          const bookingIds = payment.order?.items.map(item => item.bookingId) ?? (payment.bookingId ? [payment.bookingId] : []);
+          for (const bookingId of bookingIds) {
+            await writeAudit(null, 'BOOKING_CONFIRMED', 'Booking', bookingId, { reference: data.reference, provider: 'paystack', amountKobo: payment.amountKobo });
+            await sendBookingConfirmationEmail(bookingId);
+          }
         }
       }
       return NextResponse.json({ ok: true });

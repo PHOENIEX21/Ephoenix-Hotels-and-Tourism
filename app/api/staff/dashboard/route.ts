@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     const roomTypeId = String(body?.roomTypeId ?? '').trim();
     const roomType = await prisma.roomType.findUnique({ where: { id: roomTypeId }, select: { hotelId: true } });
     if (!roomType || (user.role === Role.STAFF && roomType.hotelId !== user.hotelId)) return NextResponse.json({ error: 'Walk-in bookings are limited to your branch.' }, { status: 403 });
-    const booking = await createPendingBooking({ roomTypeId, checkIn: String(body?.checkIn ?? ''), guests: Number(body?.guests ?? 1), guestName: String(body?.guestName ?? ''), guestEmail: String(body?.guestEmail ?? ''), guestPhone: String(body?.guestPhone ?? ''), holdMinutes: 24 * 60 });
+    const booking = await createPendingBooking({ roomTypeId, checkIn: String(body?.checkIn ?? ''), guests: Number(body?.guests ?? 1), nights: Number(body?.nights ?? 1), guestName: String(body?.guestName ?? ''), guestEmail: String(body?.guestEmail ?? ''), guestPhone: String(body?.guestPhone ?? ''), holdMinutes: 24 * 60 });
     const confirmed = await prisma.booking.update({ where: { id: booking.id }, data: { status: BookingStatus.CONFIRMED, expiresAt: null } });
     await writeAudit(user.id, 'WALK_IN_BOOKING_CREATED', 'Booking', confirmed.id, { reference: confirmed.reference, roomTypeId, branchId: roomType.hotelId });
     return NextResponse.json({ ok: true, booking: confirmed }, { status: 201 });

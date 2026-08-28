@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Payment reference is required.' }, { status: 400 });
     }
 
-    const payment = await prisma.payment.findFirst({ where: { providerReference: reference, provider: 'paystack' } });
+    const payment = await prisma.payment.findFirst({ where: { providerReference: reference, provider: 'paystack' }, include: { order: { include: { items: true } } } });
     if (!payment) {
       return NextResponse.json({ error: 'Payment record not found.' }, { status: 404 });
     }
@@ -28,13 +28,17 @@ export async function GET(request: NextRequest) {
         where: { id: payment.id },
         data: { status: PaymentStatus.SUCCESSFUL, paidAt: verification.paid_at ? new Date(verification.paid_at) : new Date() },
       });
-      await prisma.booking.update({
-        where: { id: payment.bookingId },
-        data: { status: BookingStatus.CONFIRMED },
-      });
+      if (payment.bookingId) await prisma.booking.update({ where: { id: payment.bookingId }, data: { status: BookingStatus.CONFIRMED } });
+      if (payment.orderId && payment.order) {
+        await prisma.booking.updateMany({ where: { id: { in: payment.order.items.map(item => item.bookingId) } }, data: { status: BookingStatus.CONFIRMED } });
+        await prisma.order.update({ where: { id: payment.orderId }, data: { status: 'CONFIRMED' } });
+      }
       if (!wasSuccessful) {
-        await writeAudit(null, 'BOOKING_CONFIRMED', 'Booking', payment.bookingId, { reference, provider: 'paystack', amountKobo: payment.amountKobo });
-        await sendBookingConfirmationEmail(payment.bookingId);
+        const bookingIds = payment.order?.items.map(item => item.bookingId) ?? (payment.bookingId ? [payment.bookingId] : []);
+        for (const bookingId of bookingIds) {
+          await writeAudit(null, 'BOOKING_CONFIRMED', 'Booking', bookingId, { reference, provider: 'paystack', amountKobo: payment.amountKobo });
+          await sendBookingConfirmationEmail(bookingId);
+        }
       }
       return NextResponse.json({ ok: true, status: 'confirmed', reference });
     }

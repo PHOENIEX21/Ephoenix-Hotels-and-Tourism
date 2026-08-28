@@ -8,7 +8,7 @@ const main = async () => {
     const created = await prisma.hotel.create({ data: { name: hotel.name, slug: hotel.slug, address: hotel.address, phone: hotel.phone, description: hotel.description, vatMode: hotel.vatMode, serviceNote: hotel.serviceNote } });
     const hotelRooms = rooms.filter(room => room.hotel === hotel.slug);
     for (const room of hotelRooms) {
-      const photoUrls = room.image ? [room.image] : [];
+      const photoUrls = room.images ?? (room.image ? [room.image] : []);
       const type = await prisma.roomType.create({ data: { hotelId: created.id, name: room.name, slug: room.slug, priceKobo: room.price * 100, depositKobo: room.deposit * 100, photoUrls, notes: 'Real tariff-card data' } });
       await prisma.room.createMany({ data: room.roomNumbers.map(number => ({ hotelId: created.id, roomTypeId: type.id, number })) });
     }
@@ -19,7 +19,7 @@ const main = async () => {
   const testPassword = process.env.PHASE8_TEST_PASSWORD;
   if (!testPassword) throw new Error('PHASE8_TEST_PASSWORD must be set when seeding test accounts.');
   const passwordHash = await bcrypt.hash(testPassword, 10);
-  await prisma.user.create({ data: { name: 'Phase 8 Admin', email: 'phase8.admin@ephoenix.test', passwordHash, role: 'ADMIN' } });
+  await prisma.user.create({ data: { name: 'EPhoenix Admin', email: 'adunoyepaul7@gmail.com', passwordHash, role: 'ADMIN' } });
   const staffHotel = await prisma.hotel.findUniqueOrThrow({ where: { slug: 'main' } });
   await prisma.user.create({ data: { name: 'Phase 8 Main Staff', email: 'phase8.staff@ephoenix.test', passwordHash, role: 'STAFF', hotelId: staffHotel.id } });
 

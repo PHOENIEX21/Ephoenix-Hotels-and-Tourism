@@ -10,6 +10,7 @@ export async function POST(request: NextRequest) {
     const roomTypeId = String(body?.roomTypeId ?? '').trim();
     const checkIn = String(body?.checkIn ?? '').trim();
     const guests = Number(body?.guests ?? 1);
+    const nights = Number(body?.nights ?? 1);
     const guestName = String(body?.guestName ?? '').trim();
     const guestEmail = String(body?.guestEmail ?? '').trim();
     const guestPhone = String(body?.guestPhone ?? '').trim();
@@ -23,6 +24,7 @@ export async function POST(request: NextRequest) {
       roomTypeId,
       checkIn,
       guests,
+      nights,
       guestName,
       guestEmail,
       guestPhone,

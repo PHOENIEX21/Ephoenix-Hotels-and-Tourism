@@ -38,10 +38,16 @@ enum RefundStatus {
   FAILED
 }
 
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
 model Hotel {
-  id          String       @id @default(cuid())
+  id          String      @id @default(cuid())
   name        String
-  slug        String       @unique
+  slug        String      @unique
   address     String
   phone       String
   email       String?
@@ -52,7 +58,7 @@ model Hotel {
   rooms       Room[]
   policies    Policy[]
   halls       EventHall[]
-  createdAt   DateTime     @default(now())
+  createdAt   DateTime    @default(now())
   offers      Offer[]
   reviews     Review[]
 }
@@ -69,33 +75,33 @@ model RoomType {
   photoUrls   String[] @default([])
   hotel       Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
   rooms       Room[]
+  offers      Offer[]
+  reviews     Review[]
 
   @@unique([hotelId, slug])
-  offers     Offer[]
-  reviews    Review[]
 }
 
 model Room {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   hotelId    String
   roomTypeId String
   number     String
-  hotel      Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
-  roomType   RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+  hotel      Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  roomType   RoomType  @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
   bookings   Booking[]
 
   @@unique([hotelId, number])
 }
 
 model EventHall {
-  id         String @id @default(cuid())
-  hotelId    String
-  name       String
-  type       String
-  priceKobo  Int
+  id          String  @id @default(cuid())
+  hotelId     String
+  name        String
+  type        String
+  priceKobo   Int
   depositKobo Int
-  notes      String?
-  hotel      Hotel  @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  notes       String?
+  hotel       Hotel   @relation(fields: [hotelId], references: [id], onDelete: Cascade)
 }
 
 model Policy {
@@ -109,18 +115,18 @@ model Policy {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
+  id            String     @id @default(cuid())
+  email         String     @unique
   name          String
   passwordHash  String?
-  role          Role      @default(GUEST)
+  role          Role       @default(GUEST)
   hotelId       String?
   emailVerified DateTime?
   image         String?
   accounts      Account[]
   sessions      Session[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
   auditLogs     AuditLog[]
 }
 
@@ -159,33 +165,36 @@ model VerificationToken {
 }
 
 model Booking {
-  id                 String        @id @default(cuid())
-  reference          String        @unique
-  roomId             String
-  guestName          String?
-  guestPhone         String?
-  guestEmail         String
-  checkIn            DateTime
-  checkOut           DateTime
-  status             BookingStatus @default(PENDING)
-  depositKobo        Int           @default(0)
-  subtotalKobo       Int           @default(0)
-  vatKobo            Int           @default(0)
-  serviceChargeKobo  Int           @default(0)
-  totalKobo          Int           @default(0)
-  currency           String        @default("NGN")
-  expiresAt          DateTime?
-  createdAt          DateTime      @default(now())
-  checkedInAt        DateTime?
-  checkedOutAt       DateTime?
-  refund             Refund?
-  review             Review?
-  room               Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  id                String        @id @default(cuid())
+  reference         String        @unique
+  roomId            String
+  guestName         String?
+  guestPhone        String?
+  guestEmail        String
+  checkIn           DateTime
+  checkOut          DateTime
+  status            BookingStatus @default(PENDING)
+  depositKobo       Int           @default(0)
+  subtotalKobo      Int           @default(0)
+  vatKobo           Int           @default(0)
+  serviceChargeKobo Int           @default(0)
+  totalKobo         Int           @default(0)
+  currency          String        @default("NGN")
+  expiresAt         DateTime?
+  createdAt         DateTime      @default(now())
+  checkedInAt       DateTime?
+  checkedOutAt      DateTime?
+  refund            Refund?
+  review            Review?
+  orderItem         OrderItem?
+  room              Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  payments          Payment[]
 }
 
 model Payment {
   id                String        @id @default(cuid())
-  bookingId         String
+  bookingId         String?
+  orderId           String?
   provider          String
   amountKobo        Int
   currency          String        @default("NGN")
@@ -194,51 +203,89 @@ model Payment {
   createdAt         DateTime      @default(now())
   paidAt            DateTime?
   refundedAt        DateTime?
+  booking           Booking?      @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  order             Order?        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
+model Order {
+  id                String      @id @default(cuid())
+  reference         String      @unique
+  guestName         String
+  guestEmail        String
+  guestPhone        String
+  status            OrderStatus @default(PENDING)
+  subtotalKobo      Int         @default(0)
+  vatKobo           Int         @default(0)
+  serviceChargeKobo Int         @default(0)
+  totalKobo         Int         @default(0)
+  currency          String      @default("NGN")
+  expiresAt         DateTime?
+  createdAt         DateTime    @default(now())
+  items             OrderItem[]
+  payments          Payment[]
+}
+
+model OrderItem {
+  id            String   @id @default(cuid())
+  orderId       String
+  bookingId     String   @unique
+  roomTypeId    String
+  checkIn       DateTime
+  checkOut      DateTime
+  guests        Int
+  quantity      Int      @default(1)
+  unitTotalKobo Int
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  booking       Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
 }
 
 model Refund {
-  id                 String       @id @default(cuid())
-  bookingId          String       @unique
-  provider           String
-  providerReference  String?
+  id                  String       @id @default(cuid())
+  bookingId           String       @unique
+  provider            String
+  providerReference   String?
   requestedAmountKobo Int
-  adminChargeKobo    Int          @default(0)
-  status             RefundStatus @default(PENDING)
-  reason             String
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
-  booking            Booking      @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  adminChargeKobo     Int          @default(0)
+  status              RefundStatus @default(PENDING)
+  reason              String
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  booking             Booking      @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 }
 
 model Review {
-  id          String   @id @default(cuid())
-  bookingId   String   @unique
-  hotelId     String
-  roomTypeId  String
-  guestName   String
-  rating      Int
-  body        String
-  published   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  hotel       Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
-  roomType    RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  bookingId  String   @unique
+  hotelId    String
+  roomTypeId String
+  guestName  String
+  rating     Int
+  body       String
+  published  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  hotel      Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  roomType   RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
 }
 
 model Offer {
-  id             String       @id @default(cuid())
-  name           String
-  description    String?
-  discountType   DiscountType
-  discountValue  Int
-  startsAt       DateTime
-  endsAt         DateTime
-  hotelId        String?
-  roomTypeId     String?
-  active         Boolean      @default(true)
-  createdAt      DateTime     @default(now())
-  hotel          Hotel?       @relation(fields: [hotelId], references: [id], onDelete: Cascade)
-  roomType       RoomType?    @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+  id            String       @id @default(cuid())
+  name          String
+  description   String?
+  discountType  DiscountType
+  discountValue Int
+  startsAt      DateTime
+  endsAt        DateTime
+  hotelId       String?
+  roomTypeId    String?
+  active        Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  hotel         Hotel?       @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  roomType      RoomType?    @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
 }
 
 model AuditLog {

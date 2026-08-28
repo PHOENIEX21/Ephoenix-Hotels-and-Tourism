@@ -33,24 +33,5 @@ export default function LoginPage() {
     router.push('/');
   };
 
-  return (
-    <main style={{ maxWidth: 500, margin: '4rem auto', padding: '0 1rem' }}>
-      <h1>Guest login</h1>
-      <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1rem' }}>
-        <label>
-          Email
-          <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
-        </label>
-        <label>
-          Password
-          <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
-        </label>
-        {error ? <p style={{ color: 'crimson' }}>{error}</p> : null}
-        <button type="submit" disabled={loading}>{loading ? 'Signing in...' : 'Sign in'}</button>
-      </form>
-      <p>
-        Need an account? <Link href="/register">Create one</Link>
-      </p>
-    </main>
-  );
+  return <main className="auth-page"><section className="auth-card"><div className="auth-kicker">EPhoenix guest portal</div><h1>Welcome back.</h1><p className="auth-lead">Sign in to keep your reservations and stay details in one place.</p><form className="auth-form" onSubmit={handleSubmit}><label>Email address<input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label><label>Password<input type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required /></label>{error ? <p className="auth-error" role="alert">{error}</p> : null}<button className="button button-gold auth-submit" type="submit" disabled={loading}>{loading ? 'Signing in...' : 'Sign in securely'}</button></form><p className="auth-switch"><Link href="/forgot-password">Forgot your password?</Link></p><p className="auth-switch">New to EPhoenix? <Link href="/register">Create your guest account</Link></p></section></main>;
 }

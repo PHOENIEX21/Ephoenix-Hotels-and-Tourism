@@ -55,6 +55,7 @@ export async function createPendingBooking(input: {
   roomTypeId: string;
   checkIn: string;
   guests: number;
+  nights?: number;
   guestName: string;
   guestEmail: string;
   guestPhone: string;
@@ -68,7 +69,8 @@ export async function createPendingBooking(input: {
   if (!guestEmail) throw new Error('Guest email is required.');
   if (!guestPhone) throw new Error('Guest phone is required.');
 
-  const { checkIn, checkOut } = getStayWindow(input.checkIn);
+  const nights = input.nights ?? 1;
+  const { checkIn, checkOut } = getStayWindow(input.checkIn, nights);
   const guests = Number(input.guests);
   if (!Number.isInteger(guests) || guests < 1 || guests > 20) {
     throw new Error('Guests must be a whole number between 1 and 20');
@@ -83,7 +85,8 @@ export async function createPendingBooking(input: {
   if (roomType.capacity < guests) throw new Error('This room type does not accommodate the selected guest count.');
 
   const offer = await getActiveOffer(roomType.id, roomType.hotel.id, checkIn);
-  const pricing = getBranchPricing(roomType, offer);
+  const basePricing = getBranchPricing(roomType, offer);
+  const pricing = { ...basePricing, subtotalKobo: basePricing.subtotalKobo * nights, serviceChargeKobo: basePricing.serviceChargeKobo * nights, vatKobo: basePricing.vatKobo * nights, totalKobo: basePricing.totalKobo * nights };
   const holdMinutes = input.holdMinutes ?? DEFAULT_HOLD_MINUTES;
   const expiresAt = new Date(Date.now() + holdMinutes * 60 * 1000);
 
@@ -143,6 +146,8 @@ export async function createPendingBooking(input: {
   const room = roomType.rooms.find((candidate) => candidate.id === booking.roomId)!;
   return {
     ...booking,
+    roomTypeId: roomType.id,
+    guests,
     roomNumber: room.number,
     branch: roomType.hotel.slug,
     branchName: roomType.hotel.name,

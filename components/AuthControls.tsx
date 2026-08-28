@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { signOut, useSession } from 'next-auth/react';
+import { getTimeGreeting } from '../lib/greeting';
 
 export function AuthControls() {
   const { data: session, status } = useSession();
@@ -11,9 +12,10 @@ export function AuthControls() {
   }
 
   if (session) {
+    const name = session.user?.name?.trim() || 'Guest';
     return (
       <>
-        <span>Hi, {session.user?.name ?? 'Guest'}</span>
+        <span>{getTimeGreeting()}, {name}</span>
         <button type="button" onClick={() => signOut({ callbackUrl: '/' })}>Sign out</button>
       </>
     );

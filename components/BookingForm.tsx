@@ -3,6 +3,7 @@
 import { FormEvent, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 function naira(value: number) {
   return `₦${Math.round(value / 100).toLocaleString('en-NG')}`;
@@ -21,9 +22,10 @@ type BookingFormProps = {
   offer?: { name: string; discountType: 'PERCENTAGE' | 'FIXED'; discountValue: number } | null;
   checkIn: string;
   guests: number;
+  nights: number;
 };
 
-export function BookingForm({ roomType, offer, checkIn, guests }: BookingFormProps) {
+export function BookingForm({ roomType, offer, checkIn, guests, nights }: BookingFormProps) {
   const { data: session } = useSession();
   const router = useRouter();
   const [guestName, setGuestName] = useState(session?.user?.name ?? '');
@@ -42,12 +44,12 @@ export function BookingForm({ roomType, offer, checkIn, guests }: BookingFormPro
     const subtotalKobo = roomType.priceKobo - discountKobo;
     const serviceChargeKobo = isInclusive ? 0 : Math.round(subtotalKobo * 0.1);
     const vatKobo = isInclusive ? 0 : Math.round((subtotalKobo + serviceChargeKobo) * 0.075);
-    const totalKobo = isInclusive ? subtotalKobo : subtotalKobo + serviceChargeKobo + vatKobo;
+    const totalKobo = (isInclusive ? subtotalKobo : subtotalKobo + serviceChargeKobo + vatKobo) * nights;
 
     return {
-      subtotalKobo,
-      serviceChargeKobo,
-      vatKobo,
+      subtotalKobo: subtotalKobo * nights,
+      serviceChargeKobo: serviceChargeKobo * nights,
+      vatKobo: vatKobo * nights,
       totalKobo,
       depositKobo: roomType.depositKobo,
       originalSubtotalKobo: roomType.priceKobo,
@@ -55,7 +57,7 @@ export function BookingForm({ roomType, offer, checkIn, guests }: BookingFormPro
       offerName: offer?.name ?? null,
       vatMode: isInclusive ? 'inclusive' : 'exclusive',
     };
-  }, [roomType, offer]);
+  }, [roomType, offer, nights]);
 
   async function handlePayNow() {
     if (!bookingId) {
@@ -96,6 +98,7 @@ export function BookingForm({ roomType, offer, checkIn, guests }: BookingFormPro
           roomTypeId: roomType.id,
           checkIn,
           guests,
+          nights,
           guestName,
           guestEmail,
           guestPhone,
@@ -127,8 +130,8 @@ export function BookingForm({ roomType, offer, checkIn, guests }: BookingFormPro
             <p>{roomType.hotel.name}</p>
             <p>Check-in: {new Date(`${checkIn}T12:00:00`).toLocaleDateString()}</p>
             <p>Guests: {guests}</p>
-            <p>Stay model: 24-hour stay · checkout at noon the following day</p>
-            {roomType.photoUrls[0] ? <img src={roomType.photoUrls[0]} alt={roomType.name} style={{ width: '100%', height: 200, objectFit: 'cover', borderRadius: 10 }} /> : null}
+            <p>Stay: {nights} night{nights === 1 ? '' : 's'} · checkout at noon</p>
+            {roomType.photoUrls.length ? <RoomPreview images={roomType.photoUrls} name={roomType.name} /> : null}
           </div>
         </section>
 
@@ -169,4 +172,9 @@ export function BookingForm({ roomType, offer, checkIn, guests }: BookingFormPro
       </form>
     </main>
   );
+}
+
+function RoomPreview({ images, name }: { images: string[]; name: string }) {
+  const [index, setIndex] = useState(0);
+  return <div className="room-preview"><Image src={images[index]} alt={`${name} preview ${index + 1}`} fill sizes="(max-width: 760px) 100vw, 560px" /><span>{index + 1} / {images.length}</span>{images.length > 1 ? <><button type="button" onClick={() => setIndex(current => (current - 1 + images.length) % images.length)} aria-label="Previous room photo">‹</button><button type="button" onClick={() => setIndex(current => (current + 1) % images.length)} aria-label="Next room photo">›</button></> : null}</div>;
 }
