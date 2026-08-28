@@ -1,5 +1,5 @@
 import { createHash } from 'crypto';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
 

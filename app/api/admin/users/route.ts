@@ -1,6 +1,6 @@
 import { Role } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { prisma } from '../../../../lib/prisma';
 import { requireStaff } from '../../../../lib/staff';
 import { writeAudit } from '../../../../lib/audit';
