@@ -4,6 +4,8 @@ import { prisma } from '../../../../../lib/prisma';
 import { sendBookingConfirmationEmail, verifyPaystackTransaction } from '../../../../../lib/payments';
 import { writeAudit } from '../../../../../lib/audit';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const reference = request.nextUrl.searchParams.get('reference');
