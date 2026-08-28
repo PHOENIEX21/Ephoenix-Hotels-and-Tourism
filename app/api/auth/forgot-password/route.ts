@@ -4,6 +4,7 @@ import { prisma } from '../../../../lib/prisma';
 import { rateLimit } from '../../../../lib/security';
 
 export async function POST(request: Request) {
+  try {
   const { email } = await request.json() as { email?: string };
   const normalizedEmail = email?.trim().toLowerCase();
   if (!normalizedEmail || !normalizedEmail.includes('@')) return NextResponse.json({ error: 'A valid email is required.' }, { status: 400 });
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
   const apiKey = process.env.SENDGRID_API_KEY;
   const fromEmail = process.env.SENDGRID_FROM_EMAIL;
   if (!apiKey || !fromEmail) return NextResponse.json({ error: 'Password recovery email is not configured.' }, { status: 503 });
-  const baseUrl = process.env.NEXTAUTH_URL || new URL(request.url).origin;
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL || new URL(request.url).origin;
   const resetUrl = `${baseUrl}/reset-password?token=${rawToken}`;
   const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
     method: 'POST',
@@ -29,4 +30,8 @@ export async function POST(request: Request) {
   });
   if (!response.ok) return NextResponse.json({ error: 'Unable to send the reset email right now.' }, { status: 502 });
   return NextResponse.json({ message: 'If an account exists, a reset link will be sent.' });
+  } catch (error) {
+    console.error('Password reset request failed', error);
+    return NextResponse.json({ error: 'Unable to process the password reset request right now.' }, { status: 500 });
+  }
 }
