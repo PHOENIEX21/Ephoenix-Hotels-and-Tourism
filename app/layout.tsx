@@ -11,6 +11,10 @@ export const metadata = { title: 'EPhoenix Hotels & Tourism', description: 'Thre
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" href="/favicon.ico" />
+      </head>
       <body id="top">
         <Providers>
           <NavigationProgress />
