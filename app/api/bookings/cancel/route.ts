@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     });
     if (!booking) return NextResponse.json({ error: 'Confirmed booking was not found for these details.' }, { status: 404 });
     if (booking.status === BookingStatus.CANCELLED) return NextResponse.json({ error: 'This booking has already been cancelled.' }, { status: 400 });
-    if (booking.status !== BookingStatus.CONFIRMED) return NextResponse.json({ error: 'Only confirmed bookings can be cancelled.' }, { status: 400 });
+    if (booking.status !== BookingStatus.CONFIRMED) return NextResponse.json({ error: 'This booking is not yet confirmed and cannot be cancelled — pending holds expire automatically if payment isn\'t completed.' }, { status: 400 });
     if (booking.refund?.status === RefundStatus.PENDING && booking.refund.providerReference) {
       const providerStatus = (await getPaystackRefundStatus(booking.refund.providerReference)).toLowerCase();
       if (!['processed', 'success', 'successful', 'completed'].includes(providerStatus)) {

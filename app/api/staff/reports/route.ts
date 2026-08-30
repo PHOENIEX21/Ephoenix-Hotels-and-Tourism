@@ -26,20 +26,20 @@ export async function GET(request: NextRequest) {
       include: { room: { include: { roomType: true, hotel: true } } },
       orderBy: { checkIn: 'asc' },
     });
-    const confirmed = bookings.filter(booking => booking.status === BookingStatus.CONFIRMED);
+    const activeBookings = bookings.filter(booking => booking.status === BookingStatus.CONFIRMED || booking.status === BookingStatus.COMPLETED);
     const bookingIds = bookings.map(booking => booking.id);
-    const payments = await prisma.payment.findMany({ where: { bookingId: { in: bookingIds }, status: PaymentStatus.SUCCESSFUL } });
+    const payments = await prisma.payment.findMany({ where: { status: PaymentStatus.SUCCESSFUL, OR: [{ bookingId: { in: bookingIds } }, { order: { items: { some: { bookingId: { in: bookingIds } } } } }] }, include: { order: { include: { items: { select: { bookingId: true } } } } } });
     const refunds = await prisma.refund.findMany({ where: { bookingId: { in: bookingIds }, status: RefundStatus.SUCCESSFUL } });
     const hotelReport = hotels.map(hotel => {
-      const branchBookings = confirmed.filter(booking => booking.room.hotelId === hotel.id);
+      const branchBookings = activeBookings.filter(booking => booking.room.hotelId === hotel.id);
       const bookedRooms = new Set(branchBookings.map(booking => booking.roomId));
-      const branchPayments = payments.filter(payment => branchBookings.some(booking => booking.id === payment.bookingId));
+      const branchPayments = payments.filter(payment => branchBookings.some(booking => payment.bookingId === booking.id || payment.order?.items.some(item => item.bookingId === booking.id)));
       const branchRefunds = refunds.filter(refund => branchBookings.some(booking => booking.id === refund.bookingId));
       return { branch: hotel.slug, name: hotel.name, totalRooms: hotel.rooms.length, bookedRooms: bookedRooms.size, grossRevenueKobo: branchPayments.reduce((total, payment) => total + payment.amountKobo, 0), refundedKobo: branchRefunds.reduce((total, refund) => total + refund.requestedAmountKobo, 0), netRevenueKobo: branchPayments.reduce((total, payment) => total + payment.amountKobo, 0) - branchRefunds.reduce((total, refund) => total + refund.requestedAmountKobo, 0) };
     });
     const roomTypeRevenue = hotels.flatMap(hotel => (hotel.roomTypes ?? []).map(roomType => ({ hotel, roomType }))).map(({ hotel, roomType }) => {
-      const typeBookings = confirmed.filter(booking => booking.room.roomTypeId === roomType.id);
-      const typePayments = payments.filter(payment => typeBookings.some(booking => booking.id === payment.bookingId));
+      const typeBookings = activeBookings.filter(booking => booking.room.roomTypeId === roomType.id);
+      const typePayments = payments.filter(payment => typeBookings.some(booking => payment.bookingId === booking.id || payment.order?.items.some(item => item.bookingId === booking.id)));
       const typeRefunds = refunds.filter(refund => typeBookings.some(booking => booking.id === refund.bookingId));
       const grossRevenueKobo = typePayments.reduce((total, payment) => total + payment.amountKobo, 0);
       const refundedKobo = typeRefunds.reduce((total, refund) => total + refund.requestedAmountKobo, 0);

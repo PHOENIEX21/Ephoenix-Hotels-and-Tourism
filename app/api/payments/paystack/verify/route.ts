@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
     const verification = await verifyPaystackTransaction(reference);
     if (verification.status === 'success') {
-      if (typeof verification.amount === 'number' && payment.amountKobo !== verification.amount) {
+      if (verification.currency !== 'NGN' || typeof verification.amount !== 'number' || payment.amountKobo !== verification.amount) {
         console.error('Paystack amount mismatch', { reference, expectedKobo: payment.amountKobo, receivedKobo: verification.amount });
         await prisma.payment.update({ where: { id: payment.id }, data: { status: PaymentStatus.FAILED } });
         return NextResponse.json({ error: 'Payment amount mismatch.' }, { status: 400 });

@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       if (payment) {
         // Amount verification (belt-and-braces per §9): never confirm a booking for a
         // different amount than we recorded. data.amount is in kobo.
-        if (typeof data.amount === 'number' && payment.amountKobo !== data.amount) {
+        if (data.currency !== 'NGN' || typeof data.amount !== 'number' || payment.amountKobo !== data.amount) {
           console.error('Paystack amount mismatch', { reference: data.reference, expectedKobo: payment.amountKobo, receivedKobo: data.amount });
           await prisma.payment.update({ where: { id: payment.id }, data: { status: PaymentStatus.FAILED } });
           return NextResponse.json({ error: 'Payment amount mismatch.' }, { status: 200 });

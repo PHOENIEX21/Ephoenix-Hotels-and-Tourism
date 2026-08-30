@@ -35,7 +35,9 @@ const names = fs.readdirSync(path.resolve(dir))
 for (const name of names) {
   const src = path.resolve(dir, name);
   const up = await prepare(src);
-  const publicId = `ephoenix/annex-ii/special/${path.parse(name).name.replace(/^z \((\d+)\)$/, 'z-$1')}`;
+  const stem = path.parse(name).name;
+  const publicName = /^(use\d+)$/i.test(stem) ? stem.toLowerCase() : stem.toLowerCase().replace(/^z \((\d+)\)$/, 'z-$1').replace(/[^a-z0-9-]+/g, '-');
+  const publicId = `ephoenix/annex-ii/special/${publicName}`;
   const r = await cloudinary.uploader.upload(up, { public_id: publicId, resource_type: 'image', overwrite: true });
   if (up !== src) fs.rmSync(up, { force: true });
   console.log(`${name} -> ${r.secure_url}`);

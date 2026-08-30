@@ -24,10 +24,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Booking or order not found.' }, { status: 404 });
     }
 
+    if (order && order.guestEmail.toLowerCase() !== email) {
+      return NextResponse.json({ error: 'The payment email does not match this order.' }, { status: 403 });
+    }
+    if (order && bookingId && !order.items.some(item => item.bookingId === booking.id)) {
+      return NextResponse.json({ error: 'The booking does not belong to this order.' }, { status: 400 });
+    }
+    if (!order && booking.guestEmail.toLowerCase() !== email) {
+      return NextResponse.json({ error: 'The payment email does not match this booking.' }, { status: 403 });
+    }
+
     if (booking.status !== BookingStatus.PENDING || (order && order.status !== 'PENDING')) {
       return NextResponse.json({ error: 'This booking is no longer pending and cannot be paid for.' }, { status: 400 });
     }
 
+    const amountKobo = order?.totalKobo || booking.totalKobo || booking.depositKobo;
+    if (!Number.isSafeInteger(amountKobo) || amountKobo <= 0) {
+      return NextResponse.json({ error: 'This booking has no valid payable amount.' }, { status: 400 });
+    }
     const existingPayment = await prisma.payment.findFirst({ where: order ? { orderId: order.id, provider: 'paystack' } : { bookingId: booking.id, provider: 'paystack' } });
     if (existingPayment && existingPayment.status === PaymentStatus.SUCCESSFUL) {
       return NextResponse.json({ error: 'The payment for this booking has already been completed.' }, { status: 400 });
@@ -35,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     const transaction = await createPaystackTransaction({
       bookingId: booking.id,
-      amountKobo: order?.totalKobo || booking.totalKobo || booking.depositKobo || 0,
+      amountKobo,
       email,
       userName: booking.guestName || 'Guest',
       callbackUrl: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'}/api/payments/paystack/verify`,
@@ -44,7 +58,7 @@ export async function POST(request: NextRequest) {
     if (existingPayment) {
       await prisma.payment.update({
         where: { id: existingPayment.id },
-        data: {         amountKobo: order?.totalKobo || booking.totalKobo || booking.depositKobo || 0, providerReference: transaction.reference, status: PaymentStatus.PENDING },
+        data: { amountKobo, providerReference: transaction.reference, status: PaymentStatus.PENDING },
       });
     } else {
       await prisma.payment.create({
@@ -52,7 +66,7 @@ export async function POST(request: NextRequest) {
           bookingId: order ? undefined : booking.id,
           orderId: order?.id,
           provider: 'paystack',
-          amountKobo: order?.totalKobo || booking.totalKobo || booking.depositKobo || 0,
+          amountKobo,
           currency: 'NGN',
           providerReference: transaction.reference,
           status: PaymentStatus.PENDING,

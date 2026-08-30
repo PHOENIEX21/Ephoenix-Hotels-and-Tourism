@@ -4,11 +4,12 @@ import { prisma } from '../../../../../lib/prisma';
 import { requireStaff } from '../../../../../lib/staff';
 import { writeAudit } from '../../../../../lib/audit';
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await requireStaff();
     const body = await request.json();
-    const booking = await prisma.booking.findUnique({ where: { id: params.id }, include: { room: true } });
+    const { id } = await params;
+    const booking = await prisma.booking.findUnique({ where: { id }, include: { room: true } });
     if (!booking || (user.role === Role.STAFF && booking.room.hotelId !== user.hotelId)) return NextResponse.json({ error: 'Booking not found.' }, { status: 404 });
     const action = String(body?.action ?? '');
     const data = action === 'check-in' ? { checkedInAt: new Date() } : action === 'check-out' ? { checkedOutAt: new Date() } : action === 'complete' ? { status: BookingStatus.COMPLETED } : null;

@@ -39,23 +39,23 @@ export function BookingForm({ roomType, offer, checkIn, guests, nights }: Bookin
   const [reference, setReference] = useState<string | null>(null);
 
   const pricing = useMemo(() => {
-    const isInclusive = roomType.hotel.slug === 'annex-ii';
     const discountKobo = offer?.discountType === 'PERCENTAGE' ? Math.min(roomType.priceKobo, Math.round(roomType.priceKobo * offer.discountValue / 100)) : Math.min(roomType.priceKobo, offer?.discountValue ?? 0);
     const subtotalKobo = roomType.priceKobo - discountKobo;
-    const serviceChargeKobo = isInclusive ? 0 : Math.round(subtotalKobo * 0.1);
-    const vatKobo = isInclusive ? 0 : Math.round((subtotalKobo + serviceChargeKobo) * 0.075);
-    const totalKobo = (isInclusive ? subtotalKobo : subtotalKobo + serviceChargeKobo + vatKobo) * nights;
+    const subtotalWithStayKobo = subtotalKobo * nights;
+    const cardFeeKobo = subtotalWithStayKobo < 250_000 ? 0 : Math.min(Math.round(subtotalWithStayKobo * 0.015) + 10_000, 200_000);
+    const totalKobo = subtotalWithStayKobo + cardFeeKobo;
 
     return {
-      subtotalKobo: subtotalKobo * nights,
-      serviceChargeKobo: serviceChargeKobo * nights,
-      vatKobo: vatKobo * nights,
+      subtotalKobo: subtotalWithStayKobo,
+      serviceChargeKobo: 0,
+      vatKobo: 0,
+      cardFeeKobo,
       totalKobo,
       depositKobo: roomType.depositKobo,
       originalSubtotalKobo: roomType.priceKobo,
       discountKobo,
       offerName: offer?.name ?? null,
-      vatMode: isInclusive ? 'inclusive' : 'exclusive',
+      vatMode: 'room-rate',
     };
   }, [roomType, offer, nights]);
 
@@ -122,6 +122,7 @@ export function BookingForm({ roomType, offer, checkIn, guests, nights }: Bookin
 
   return (
     <main style={{ maxWidth: 900, margin: '2rem auto', padding: '0 1rem' }}>
+      <nav className="booking-progress" aria-label="Booking progress"><span className="is-complete"><b>1</b> Stay details</span><span className={bookingId ? 'is-complete' : 'is-current'}><b>2</b> Guest details</span><span className={paying ? 'is-current' : ''}><b>3</b> Secure payment</span></nav>
       <div style={{ display: 'grid', gap: '2rem', gridTemplateColumns: '1.2fr 0.8fr' }}>
         <section>
           <h1>Complete your booking</h1>
@@ -137,12 +138,11 @@ export function BookingForm({ roomType, offer, checkIn, guests, nights }: Bookin
 
         <aside style={{ border: '1px solid #ddd', borderRadius: 12, padding: 16 }}>
           <h3>Pricing summary</h3>
-          <p>{pricing.vatMode === 'exclusive' ? 'VAT/service charge added' : 'Price includes VAT and service charge'}</p>
+          <p>Room rate is charged as displayed. Card payment fee is shown separately below.</p>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 8 }}>
             <li>Room rate: {naira(pricing.subtotalKobo)}</li>
             {pricing.discountKobo > 0 ? <li>Offer discount: -{naira(pricing.discountKobo)} ({pricing.offerName})</li> : null}
-            <li>Service charge: {naira(pricing.serviceChargeKobo)}</li>
-            <li>VAT: {naira(pricing.vatKobo)}</li>
+            <li>Card processing fee: {naira(pricing.cardFeeKobo)}</li>
             <li>Deposit: {naira(pricing.depositKobo)}</li>
             <li><strong>Total hold amount: {naira(pricing.totalKobo)}</strong></li>
           </ul>

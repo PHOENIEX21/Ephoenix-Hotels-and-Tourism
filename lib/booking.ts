@@ -30,24 +30,21 @@ export async function getActiveOffer(roomTypeId: string, hotelId: string, checkI
 }
 
 export function getBranchPricing(roomType: { hotel: { slug: string }; priceKobo: number; depositKobo: number }, offer?: { name: string; discountType: 'PERCENTAGE' | 'FIXED'; discountValue: number } | null) {
-  const isInclusiveBranch = roomType.hotel.slug === 'annex-ii';
   const discountKobo = offer?.discountType === 'PERCENTAGE'
     ? Math.min(roomType.priceKobo, Math.round(roomType.priceKobo * offer.discountValue / 100))
     : Math.min(roomType.priceKobo, offer?.discountValue ?? 0);
   const subtotalKobo = roomType.priceKobo - discountKobo;
-  const serviceChargeKobo = isInclusiveBranch ? 0 : Math.round(subtotalKobo * 0.1);
-  const vatKobo = isInclusiveBranch ? 0 : Math.round((subtotalKobo + serviceChargeKobo) * 0.075);
-  const totalKobo = isInclusiveBranch ? subtotalKobo : subtotalKobo + serviceChargeKobo + vatKobo;
+  const totalKobo = subtotalKobo;
 
   return {
     subtotalKobo,
-    serviceChargeKobo,
-    vatKobo,
+    serviceChargeKobo: 0,
+    vatKobo: 0,
     totalKobo,
     depositKobo: roomType.depositKobo,
     discountKobo,
     offerName: offer?.name ?? null,
-    vatMode: isInclusiveBranch ? 'inclusive' : 'exclusive',
+    vatMode: 'room-rate',
   };
 }
 
@@ -86,7 +83,7 @@ export async function createPendingBooking(input: {
 
   const offer = await getActiveOffer(roomType.id, roomType.hotel.id, checkIn);
   const basePricing = getBranchPricing(roomType, offer);
-  const pricing = { ...basePricing, subtotalKobo: basePricing.subtotalKobo * nights, serviceChargeKobo: basePricing.serviceChargeKobo * nights, vatKobo: basePricing.vatKobo * nights, totalKobo: basePricing.totalKobo * nights };
+  const pricing = { ...basePricing, subtotalKobo: basePricing.subtotalKobo * nights, serviceChargeKobo: 0, vatKobo: 0, totalKobo: basePricing.totalKobo * nights };
   const holdMinutes = input.holdMinutes ?? DEFAULT_HOLD_MINUTES;
   const expiresAt = new Date(Date.now() + holdMinutes * 60 * 1000);
 

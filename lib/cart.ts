@@ -44,8 +44,8 @@ export async function createOrderFromCart(input: {
     }
     const total = bookings.reduce((sum, entry) => sum + entry.booking.totalKobo, 0);
     const subtotal = bookings.reduce((sum, entry) => sum + entry.booking.subtotalKobo, 0);
-    const vat = bookings.reduce((sum, entry) => sum + entry.booking.vatKobo, 0);
-    const service = bookings.reduce((sum, entry) => sum + entry.booking.serviceChargeKobo, 0);
+    const vat = 0;
+    const service = 0;
     const expiresAt = bookings.reduce<Date | null>((earliest, entry) => !earliest || (entry.booking.expiresAt && entry.booking.expiresAt < earliest) ? entry.booking.expiresAt : earliest, null);
 
     return await prisma.$transaction(async tx => {

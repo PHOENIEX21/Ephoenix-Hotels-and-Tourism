@@ -3,14 +3,15 @@ import { prisma } from '../../lib/prisma';
 import { getActiveOffer } from '../../lib/booking';
 import { BookingForm } from '../../components/BookingForm';
 
-export default async function BookPage({ searchParams }: { searchParams: { roomTypeId?: string; roomTypeSlug?: string; hotel?: string; checkIn?: string; guests?: string; nights?: string } }) {
-  const checkIn = searchParams.checkIn ?? new Date().toISOString().slice(0, 10);
-  const guests = Number(searchParams.guests ?? '1');
-  const nights = Number(searchParams.nights ?? '1');
+export default async function BookPage({ searchParams }: { searchParams: Promise<{ roomTypeId?: string; roomTypeSlug?: string; hotel?: string; checkIn?: string; guests?: string; nights?: string }> }) {
+  const params = await searchParams;
+  const checkIn = params.checkIn ?? new Date().toISOString().slice(0, 10);
+  const guests = Number(params.guests ?? '1');
+  const nights = Number(params.nights ?? '1');
 
-  const roomTypeId = searchParams.roomTypeId;
-  const roomTypeSlug = searchParams.roomTypeSlug;
-  const hotelSlug = searchParams.hotel;
+  const roomTypeId = params.roomTypeId;
+  const roomTypeSlug = params.roomTypeSlug;
+  const hotelSlug = params.hotel;
   if (!roomTypeId && (!roomTypeSlug || !hotelSlug)) {
     notFound();
   }

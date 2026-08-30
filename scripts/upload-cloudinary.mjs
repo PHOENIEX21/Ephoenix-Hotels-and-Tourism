@@ -35,7 +35,7 @@ async function prepareUpload(filePath) {
 cloudinary.config({ cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME, api_key: process.env.CLOUDINARY_API_KEY, api_secret: process.env.CLOUDINARY_API_SECRET });
 if (!process.env.CLOUDINARY_API_SECRET) throw new Error('Set Cloudinary variables from .env.local before uploading.');
 const files = [];
-const branchNames = { ADEREMI: 'main', 'ANNEX I': 'annex-i', 'ANNEX II': 'annex-ii' };
+const branchNames = { ADEREMI: 'main', 'ANNEX I': 'annex-i', 'ANNEX II': 'annex-ii', restaurant: 'restaurant' };
 const slugify = value => value.toLowerCase().trim().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 function collectFiles(directory) {
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {

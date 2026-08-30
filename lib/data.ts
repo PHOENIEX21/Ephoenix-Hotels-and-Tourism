@@ -2,14 +2,19 @@ export type Hotel = { slug: string; shortName: string; name: string; address: st
 export type RoomType = { hotel: string; name: string; slug: string; price: number; deposit: number; roomNumbers: string[]; image?: string; images?: string[] };
 export type Policy = { item: string; detail: string };
 export const cloudinary = (publicId: string) => `https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'n4m6aaqd'}/image/upload/f_auto,q_auto/${publicId}`;
-const cloudinaryName = (name: string) => name.replace(/\.[^.]+$/, '').replace(/^z \((\d+)\)$/, 'z-$1');
+const cloudinaryName = (name: string) => {
+  const stem = name.replace(/\.[^.]+$/, '');
+  const curated = stem.match(/^use(\d+)/i);
+  if (curated) return `use${curated[1]}`;
+  return stem.toLowerCase().trim().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').replace(/^z-(\d+)$/, 'z-$1');
+};
 export const curatedImages = (folder: string, names: string[]) => names
   .map((name, index) => {
     const baseName = name.replace(/\.[^.]+$/, '');
     return { name, order: Number(baseName.match(/^use(\d+)/)?.[1] || Number.MAX_SAFE_INTEGER), index };
   })
   .sort((a, b) => a.order - b.order || a.index - b.index)
-  .map(({ name }) => `${cloudinary(`${folder}/${cloudinaryName(name)}`)}${/\.[^.]+$/.test(name) ? '' : '.jpg'}`);
+  .map(({ name }) => `${cloudinary(`${folder}/${cloudinaryName(name)}`)}.jpg`);
 const curatedNumbers: Record<string, number[]> = {
   'ephoenix/annex-ii/exterior': [1, 2, 4, 5],
   'ephoenix/annex-ii/lobby': [1, 2, 3, 4, 5, 6, 8, 9],
@@ -23,9 +28,9 @@ export const folderImages = (folder: string, names: string[]) => curatedImages(f
 const roomImage = (folder: string, filename: string) => `${cloudinary(`${folder}/${filename}`)}.jpg`;
 
 export const hotels: Hotel[] = [
-  { slug: 'main', shortName: 'Main GRA Branch', name: 'E-Phoenix Hotels and Tourism (Main)', address: '45 Aderemi Adeleye Street, GRA, Ilorin, Kwara State, Adjacent Federal Secretariat, Opposite Federal High Court', phone: '07077014444 / 08178887145 / 08035799641', description: 'Flagship location with premium suites and executive accommodation.', rooms: 54, image: cloudinary('ephoenix/main/overview/EXTERIOR%20MAIN/photo-01'), vatMode: 'exclusive', serviceNote: '10% service charge + 7.5% VAT added to rate' },
-  { slug: 'annex-i', shortName: 'Annex 1', name: 'E-Phoenix Hotels and Tourism (Annex 1)', address: '6 Umar Audi Road, Opposite Unilorin Senior Staff Quarters, Beside Premium Bank, Tanke Junction, GRA, Ilorin, Kwara State', phone: '08062267110 / 08178884601 / 08035799641', description: 'Modern retreat with luxury amenities and a serene environment.', rooms: 29, image: cloudinary('ephoenix/annex-i/exterior-annex-1/photo-01'), vatMode: 'exclusive', serviceNote: '10% service charge + 7.5% VAT added to rate' },
-  { slug: 'annex-ii', shortName: 'Annex 2', name: 'E-Phoenix Hotel (Annex II)', address: '13 Reservation Road, Flower Garden, GRA, Ilorin, Kwara State', phone: '09084878587 / 08035799587 / 08035603554', description: 'Ultra-modern annex with a pool, restaurant, and entertainment.', rooms: 62, image: cloudinary('ephoenix/annex-ii/exterior/photo-01'), vatMode: 'inclusive', serviceNote: '10% service charge + 7.5% VAT already included' },
+  { slug: 'main', shortName: 'Main GRA Branch', name: 'E-Phoenix Hotels and Tourism (Main)', address: '45 Aderemi Adeleye Street, GRA, Ilorin, Kwara State, Adjacent Federal Secretariat, Opposite Federal High Court', phone: '07077014444 / 08178887145 / 08035799641', description: 'Flagship location with premium suites and executive accommodation.', rooms: 54, image: cloudinary('ephoenix/main/overview/EXTERIOR%20MAIN/photo-01'), vatMode: 'room-rate', serviceNote: 'Room rate is charged as displayed; no VAT or service charge added.' },
+  { slug: 'annex-i', shortName: 'Annex 1', name: 'E-Phoenix Hotels and Tourism (Annex 1)', address: '6 Umar Audi Road, Opposite Unilorin Senior Staff Quarters, Beside Premium Bank, Tanke Junction, GRA, Ilorin, Kwara State', phone: '08062267110 / 08178884601 / 08035799641', description: 'Modern retreat with luxury amenities and a serene environment.', rooms: 29, image: cloudinary('ephoenix/annex-i/exterior-annex-1/photo-01'), vatMode: 'room-rate', serviceNote: 'Room rate is charged as displayed; no VAT or service charge added.' },
+  { slug: 'annex-ii', shortName: 'Annex 2', name: 'E-Phoenix Hotel (Annex II)', address: '13 Reservation Road, Flower Garden, GRA, Ilorin, Kwara State', phone: '09084878587 / 08035799587 / 08035603554', description: 'Ultra-modern annex with a pool, restaurant, and entertainment.', rooms: 62, image: cloudinary('ephoenix/annex-ii/exterior/photo-01'), vatMode: 'room-rate', serviceNote: 'Room rate is charged as displayed; no VAT or service charge added.' },
 ];
 
 const room = (hotel: string, name: string, price: number, deposit: number, roomNumbers: string[], imageOrImages?: string | string[]): RoomType => {
@@ -62,7 +67,7 @@ export const policiesByHotel: Record<string, Policy[]> = {
     { item: 'Cancellation (<24hrs before arrival)', detail: '50% charge' },
     { item: 'No-show', detail: '100% charge' },
     { item: 'Outside food/beverages', detail: 'Not allowed on premises or in rooms' },
-    { item: 'Service charge & VAT', detail: 'EXCLUSIVE - 10% service charge + 7.5% VAT added to rate' },
+    { item: 'Pricing', detail: 'Room rate is charged as displayed; no VAT or service charge added.' },
   ],
   'annex-i': [
     { item: 'Check-out time', detail: '12:00 noon the following day; guests may check in at any time under the 24-hour stay model' },
@@ -72,7 +77,7 @@ export const policiesByHotel: Record<string, Policy[]> = {
     { item: 'Outside food/beverages', detail: 'Not allowed on premises or in rooms' },
     { item: 'Complimentary breakfast', detail: 'Optional, 6:30am-9:00am' },
     { item: 'Internet', detail: 'Free' },
-    { item: 'Service charge & VAT', detail: 'EXCLUSIVE - 10% service charge + 7.5% VAT added to rate' },
+    { item: 'Pricing', detail: 'Room rate is charged as displayed; no VAT or service charge added.' },
   ],
   'annex-ii': [
     { item: 'Check-in time', detail: 'Anytime; 24-hour stay model with checkout fixed at 12:00 noon the following day' },
@@ -83,7 +88,7 @@ export const policiesByHotel: Record<string, Policy[]> = {
     { item: 'Complimentary breakfast', detail: 'Optional, 6:30am-9:00am' },
     { item: 'Internet', detail: 'Free' },
     { item: 'Unused deposit refunds', detail: '7.5% administrative charge deducted' },
-    { item: 'Service charge & VAT', detail: 'INCLUSIVE - 10% service charge + 7.5% VAT already in rate' },
+    { item: 'Pricing', detail: 'Room rate is charged as displayed; no VAT or service charge added.' },
   ],
 };
 export const policies = policiesByHotel.main.map(policy => `${policy.item}: ${policy.detail}`);
