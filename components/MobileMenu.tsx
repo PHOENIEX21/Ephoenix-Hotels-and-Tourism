@@ -1,11 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AuthControls } from './AuthControls';
 
 export default function MobileMenu() {
   const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open]);
+
   return <>
     <div className="header-socials" aria-label="Social media">
       <a href="https://www.facebook.com/ever.phoenix.2025" target="_blank" rel="noreferrer" aria-label="Facebook"><img src="https://cdn.simpleicons.org/facebook/1877F2" alt="Facebook" /></a>
@@ -16,6 +25,7 @@ export default function MobileMenu() {
     <button type="button" className="menu-toggle" onClick={() => setOpen(current => !current)} aria-label={open ? 'Close navigation' : 'Open navigation'} aria-expanded={open}>
       <span /><span /><span />
     </button>
+    {open ? <div className="mobile-backdrop" onClick={() => setOpen(false)} aria-hidden="true" /> : null}
     <div className={open ? 'mobile-menu is-open' : 'mobile-menu'}>
       <Link href="/rooms" onClick={() => setOpen(false)}>Rooms</Link>
       <Link href="/gallery" onClick={() => setOpen(false)}>Gallery</Link>
