@@ -94,14 +94,18 @@
 @media(max-width:760px){
   .site-header{padding:8px 10px!important;min-height:56px!important}
   .site-header>.brand img{width:40px!important;height:40px!important}
-  .site-header>.header-branding{width:132px!important;margin:0!important;text-align:center!important}
+  .site-header>.header-branding{width:150px!important;margin:0!important;text-align:center!important;top:7px!important}
   .site-header>.header-title{font-size:11px!important;white-space:nowrap!important}
   .site-header>.header-branding .header-title{font-size:11px!important;line-height:1.05!important}
   .site-header>.header-branding .header-tagline{font-size:7px!important;letter-spacing:.4px!important;white-space:nowrap!important}
-  .site-header>.header-socials{gap:3px!important;margin-right:2px!important}
+  .site-header>.header-socials{position:absolute!important;top:39px!important;left:50%!important;transform:translateX(-50%)!important;display:flex!important;gap:4px!important;margin:0!important}
   .site-header>.header-socials a{width:18px!important;height:18px!important}
   .site-header>.header-socials img{width:10px!important;height:10px!important}
-  .site-header>.menu-toggle{width:30px!important;height:30px!important;padding:7px!important;margin-left:3px!important}
-  .site-header>.menu-toggle span{width:15px!important;height:2px!important}
+  .site-header>.menu-toggle{display:grid!important;place-items:center!important;align-content:center!important;gap:4px!important;width:42px!important;height:42px!important;padding:10px!important;margin-left:auto!important;border-radius:50%!important}
+  .site-header>.menu-toggle span{width:20px!important;height:2px!important;margin:0!important}
+}
+
+@media(max-width:760px){
+  .site-header{position:fixed!important;top:0!important;right:0!important;bottom:auto!important;left:0!important;height:76px!important;min-height:76px!important;z-index:50!important;overflow:visible!important}
 }
 .auth-page{min-height:calc(100vh - 80px);display:grid;place-items:center;padding:55px 20px;background:radial-gradient(circle at 15% 15%,#eee4f5 0,transparent 32%),linear-gradient(145deg,#fff 0%,#f8f2fb 100%)}.auth-card{width:min(100%,460px);padding:42px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 16px 45px rgba(58,23,88,.12)}.auth-page-staff .auth-card{border-top:4px solid var(--gold)}.auth-kicker{color:var(--gold);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase}.auth-card h1{margin:10px 0 8px;color:var(--dark);font-size:44px}.auth-lead{margin:0 0 28px;color:#746983;line-height:1.6;font-size:14px}.auth-form{display:grid;gap:16px}.auth-form label{display:grid;gap:7px;color:var(--dark);font-size:12px;font-weight:700}.auth-form input{width:100%;min-height:46px;padding:0 13px;border:1px solid #d9cedf;border-radius:5px;background:#fff;color:var(--ink);font:inherit}.auth-form input:focus{outline:2px solid #d0a06855;border-color:var(--gold)}.auth-submit{width:100%;border:0;cursor:pointer}.auth-submit:disabled{opacity:.65;cursor:wait}.auth-error{margin:0;color:var(--coral);font-size:13px;font-weight:700}.auth-switch,.auth-note{margin:22px 0 0;color:#746983;font-size:12px}.auth-switch a{color:var(--purple);font-weight:700}.dashboard-page{max-width:1180px;margin:auto;padding:70px 20px}.dashboard-heading{max-width:620px;margin-bottom:35px}.dashboard-heading h1{margin:10px 0;color:var(--dark);font-size:52px}.dashboard-heading p{color:#746983;line-height:1.6}.dashboard-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}.dashboard-card{min-height:190px;padding:24px;background:#fff;border:1px solid var(--line);border-radius:9px;box-shadow:0 5px 20px rgba(58,23,88,.06);transition:transform .2s,box-shadow .2s}.dashboard-card:hover{transform:translateY(-3px);box-shadow:0 12px 30px rgba(58,23,88,.13)}.dashboard-card span{color:var(--gold);font:500 13px 'IBM Plex Mono',monospace}.dashboard-card h2{margin:27px 0 7px;color:var(--dark);font-size:22px}.dashboard-card p{margin:0;color:#746983;font-size:13px;line-height:1.5}@media(max-width:760px){.auth-card{padding:30px 24px}.auth-card h1{font-size:38px}.dashboard-page{padding:48px 20px}.dashboard-heading h1{font-size:42px}.dashboard-grid{grid-template-columns:1fr 1fr}.dashboard-card{min-height:160px;padding:18px}}@media(max-width:420px){.dashboard-grid{grid-template-columns:1fr}}
