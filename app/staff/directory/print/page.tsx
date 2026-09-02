@@ -1,86 +1,127 @@
-import { getServerSession } from 'next-auth';
-import { redirect } from 'next/navigation';
-import { authOptions } from '../../../../lib/auth';
+'use client';
 
-export default async function StaffDirectoryPrintPage() {
-  const session = await getServerSession(authOptions);
-  const role = (session?.user as { role?: string } | undefined)?.role;
-  if (!session?.user || role !== 'ADMIN') redirect('/staff/login');
+import { useEffect, useRef, useState } from 'react';
 
-  const branchParam = 'all';
-  const url = new URL('http://localhost');
-  url.pathname = '/api/staff/directory';
-  url.searchParams.set('branch', branchParam);
-  url.searchParams.set('export', 'true');
+const DEPARTMENTS: Record<string, string> = {
+  FRONT_OFFICE: 'Front Office/Reception',
+  HOUSEKEEPING: 'Housekeeping',
+  RESTAURANT: 'Restaurant',
+  KITCHEN: 'Kitchen',
+  POOL_BAR: 'Pool Bar',
+  ACCOUNTS: 'Accounts/Finance',
+  SECURITY: 'Security',
+  MAINTENANCE: 'Maintenance',
+  MANAGEMENT: 'Management',
+  OTHER: 'Other',
+};
+
+type Registration = {
+  id: string;
+  fullName: string;
+  originalRole: string;
+  confirmedRole: string | null;
+  department: string;
+  phone: string | null;
+  email: string | null;
+  staffStatus: string;
+  whatsappConsent: boolean;
+  submittedAt: string;
+  hotel: { name: string } | null;
+};
+
+export default function StaffDirectoryPrintPage() {
+  const [data, setData] = useState<{ registrations: Registration[] } | null>(null);
+  const [error, setError] = useState('');
+  const printedRef = useRef(false);
+
+  useEffect(() => {
+    async function load() {
+      try {
+      const url = new URL('/api/staff/directory', window.location.origin);
+      url.searchParams.set('branch', 'all');
+      const res = await fetch(url.toString(), { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to load');
+      const json = await res.json();
+        setData(json);
+      } catch {
+        setError('Unable to load staff directory.');
+      }
+    }
+    load();
+  }, []);
+
+  useEffect(() => {
+    if (data && !printedRef.current) {
+      printedRef.current = true;
+      setTimeout(() => window.print(), 500);
+    }
+  }, [data]);
+
+  if (error) {
+    return <p className="staff-directory-print-error">{error}</p>;
+  }
+
+  if (!data) {
+    return <p className="staff-directory-loading">Loading...</p>;
+  }
+
+  const grouped: Record<string, Record<string, Registration[]>> = {};
+  for (const reg of data.registrations) {
+    const branch = reg.hotel?.name || 'Unknown';
+    const role = reg.confirmedRole || 'Uncategorised';
+    if (!grouped[branch]) grouped[branch] = {};
+    if (!grouped[branch][role]) grouped[branch][role] = [];
+    grouped[branch][role].push(reg);
+  }
 
   return (
-    <html lang="en">
-      <head>
-        <title>Staff Directory - Print</title>
-        <style dangerouslySetInnerHTML={{ __html: `
-          @page { size: A4; margin: 18mm; }
-          body { font-family: Arial, sans-serif; font-size: 12px; color: #222; }
-          h1 { font-size: 20px; margin-bottom: 4px; }
-          h2 { font-size: 16px; margin-top: 22px; border-bottom: 2px solid #111; padding-bottom: 4px; }
-          h3 { font-size: 14px; margin-top: 14px; }
-          table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-          th, td { border: 1px solid #aaa; padding: 6px 8px; text-align: left; vertical-align: top; }
-          th { background: #f3f3f3; font-size: 11px; text-transform: uppercase; }
-          .meta { color: #555; margin-bottom: 18px; }
-          .footer { margin-top: 30px; font-size: 11px; color: #666; border-top: 1px solid #ccc; padding-top: 8px; }
-        ` }} />
-      </head>
-      <body>
-        <h1>EPhoenix Staff Directory</h1>
-        <div className="meta">
-          <p>Generated: {new Date().toLocaleString()}</p>
-          <p>Branch: All branches</p>
-        </div>
-        <div id="content">Loading...</div>
-        <script dangerouslySetInnerHTML={{ __html: `
-          async function load() {
-            const url = new URL('/api/staff/directory', window.location.origin);
-            url.searchParams.set('branch', 'all');
-            const res = await fetch(url.toString());
-            const data = await res.json();
-            const container = document.getElementById('content');
-            const grouped = {};
-            for (const reg of data.registrations) {
-              const branch = reg.hotel?.name || 'Unknown';
-              const role = reg.confirmedRole || 'Uncategorised';
-              if (!grouped[branch]) grouped[branch] = {};
-              if (!grouped[branch][role]) grouped[branch][role] = [];
-              grouped[branch][role].push(reg);
-            }
-            let html = '';
-            for (const [branch, roles] of Object.entries(grouped)) {
-              html += '<h2>' + branch + '</h2>';
-              for (const [role, items] of Object.entries(roles)) {
-                html += '<h3>' + role + ' (' + items.length + ')</h3>';
-                html += '<table><thead><tr><th>Name</th><th>Original Role</th><th>Confirmed Role</th><th>Department</th><th>Phone</th><th>Email</th><th>Status</th><th>WhatsApp</th><th>Submitted</th></tr></thead><tbody>';
-                for (const r of items) {
-                  html += '<tr>' +
-                    '<td>' + r.fullName + '</td>' +
-                    '<td>' + r.originalRole + '</td>' +
-                    '<td>' + (r.confirmedRole || '') + '</td>' +
-                    '<td>' + r.department + '</td>' +
-                    '<td>' + (r.phone || '') + '</td>' +
-                    '<td>' + (r.email || '') + '</td>' +
-                    '<td>' + r.staffStatus + '</td>' +
-                    '<td>' + (r.whatsappConsent ? 'Yes' : 'No') + '</td>' +
-                    '<td>' + new Date(r.submittedAt).toLocaleDateString() + '</td>' +
-                  '</tr>';
-                }
-                html += '</tbody></table>';
-              }
-            }
-            html += '<div class=\"footer\">Total records: ' + data.registrations.length + '</div>';
-            container.innerHTML = html;
-            setTimeout(() => window.print(), 500);
-          }
-          load();
-        ` }} />
-      </body>
-    </html>
+    <main className="staff-directory-print">
+      <h1>EPhoenix Staff Directory</h1>
+      <div className="staff-directory-print-meta">
+        <p>Generated: {new Date().toLocaleString()}</p>
+        <p>Branch: All branches</p>
+      </div>
+      {Object.entries(grouped).map(([branch, roles]) => (
+        <section key={branch} className="staff-directory-print-branch">
+          <h2>{branch}</h2>
+          {Object.entries(roles).map(([role, items]) => (
+            <div key={role} className="staff-directory-print-role">
+              <h3>{role} ({items.length})</h3>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Original Role</th>
+                    <th>Confirmed Role</th>
+                    <th>Department</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Status</th>
+                    <th>WhatsApp</th>
+                    <th>Submitted</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((r) => (
+                    <tr key={r.id}>
+                      <td>{r.fullName}</td>
+                      <td>{r.originalRole}</td>
+                      <td>{r.confirmedRole || ''}</td>
+                      <td>{DEPARTMENTS[r.department] || r.department}</td>
+                      <td>{r.phone || ''}</td>
+                      <td>{r.email || ''}</td>
+                      <td>{r.staffStatus}</td>
+                      <td>{r.whatsappConsent ? 'Yes' : 'No'}</td>
+                      <td>{new Date(r.submittedAt).toLocaleDateString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+        </section>
+      ))}
+      <div className="staff-directory-print-footer">Total records: {data.registrations.length}</div>
+    </main>
   );
 }

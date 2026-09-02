@@ -3,6 +3,7 @@ import { authOptions } from './auth';
 import { prisma } from './prisma';
 import { StaffRegistration, Department, StaffStatus } from '@prisma/client';
 import type { Prisma } from '@prisma/client';
+import { resolveBranchId } from './branches';
 
 export async function requireDirectoryManager(expectedBranchId?: string) {
   const session = await getServerSession(authOptions);
@@ -73,11 +74,8 @@ export async function getStaffDirectory(params: {
   if (!manager.isGlobalManager && manager.hotelId) {
     where.hotelId = manager.hotelId;
   } else if (params.branch && params.branch !== 'all') {
-    const branchId = await prisma.hotel.findFirst({
-      where: { name: params.branch },
-      select: { id: true },
-    });
-    if (branchId) where.hotelId = branchId.id;
+    const branchId = await resolveBranchId(params.branch);
+    where.hotelId = branchId;
   }
 
   if (params.status && ['PENDING', 'ACTIVE', 'SUSPENDED', 'INACTIVE'].includes(params.status.toUpperCase())) {
@@ -148,6 +146,43 @@ export async function approveStaffRegistration(id: string) {
   });
 
   return updated;
+}
+
+export async function approveAllPendingStaffRegistrations() {
+  const manager = await requireDirectoryManager();
+
+  const pending = await prisma.staffRegistration.findMany({
+    where: { staffStatus: 'PENDING' },
+    select: { id: true, fullName: true, hotelId: true },
+  });
+
+  if (pending.length === 0) {
+    return { updated: [] as { id: string; fullName: string }[], count: 0 };
+  }
+
+  const updated = await prisma.staffRegistration.updateMany({
+    where: { staffStatus: 'PENDING' },
+    data: {
+      staffStatus: 'ACTIVE',
+      confirmedAt: new Date(),
+      confirmedById: manager.id,
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      actorId: manager.id,
+      action: 'STAFF_REGISTRATION_APPROVED_ALL',
+      entity: 'StaffRegistration',
+      entityId: 'all',
+      details: JSON.stringify({ count: updated.count }),
+    },
+  });
+
+  return {
+    updated: pending.map((p) => ({ id: p.id, fullName: p.fullName })),
+    count: updated.count,
+  };
 }
 
 export async function suspendStaffRegistration(id: string) {
@@ -288,6 +323,42 @@ export async function sendWhatsAppInvitation(id: string) {
   });
 
   return updated;
+}
+
+export async function sendWhatsAppGroupLink(groupLink: string) {
+  const manager = await requireDirectoryManager();
+
+  const registrations = await prisma.staffRegistration.findMany({
+    where: {
+      staffStatus: 'ACTIVE',
+      whatsappConsent: true,
+      phone: { not: null },
+    },
+    select: { id: true, fullName: true, phone: true },
+  });
+
+  if (registrations.length === 0) {
+    throw new Error('No active consented staff with phone numbers found.');
+  }
+
+  const message = `EPhoenix Hotels & Tourism staff WhatsApp group: ${groupLink}`;
+  const opened = registrations.map((r) => {
+    const url = new URL('https://wa.me/' + r.phone!.replace(/\D/g, ''));
+    url.searchParams.set('text', message);
+    return { id: r.id, fullName: r.fullName, url: url.toString() };
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      actorId: manager.id,
+      action: 'WHATSAPP_GROUP_LINK_PREPARED',
+      entity: 'StaffRegistration',
+      entityId: 'group-link',
+      details: JSON.stringify({ count: opened.length, groupLink }),
+    },
+  });
+
+  return { count: opened.length, opened };
 }
 
 export async function exportStaffCsv(branch?: string) {

@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   getStaffDirectory,
   approveStaffRegistration,
+  approveAllPendingStaffRegistrations,
   suspendStaffRegistration,
   deactivateStaffRegistration,
   updateStaffRegistration,
   sendWhatsAppInvitation,
+  sendWhatsAppGroupLink,
   exportStaffCsv,
 } from '../../../../lib/directory';
 import { Department } from '@prisma/client';
@@ -65,16 +67,27 @@ export async function POST(request: NextRequest) {
     const action = url.searchParams.get('action');
     const id = url.searchParams.get('id');
 
-    if (!id) return NextResponse.json({ error: 'Registration id is required.' }, { status: 400 });
-
     let result;
     if (action === 'approve') {
+      if (!id) return NextResponse.json({ error: 'Registration id is required.' }, { status: 400 });
       result = await approveStaffRegistration(id);
+    } else if (action === 'approve-all') {
+      result = await approveAllPendingStaffRegistrations();
+    } else if (action === 'group-link') {
+      const body = await request.json().catch(() => ({}));
+      const groupLink = typeof body?.groupLink === 'string' ? body.groupLink.trim() : '';
+      if (!groupLink) {
+        return NextResponse.json({ error: 'Group link is required.' }, { status: 400 });
+      }
+      result = await sendWhatsAppGroupLink(groupLink);
     } else if (action === 'suspend') {
+      if (!id) return NextResponse.json({ error: 'Registration id is required.' }, { status: 400 });
       result = await suspendStaffRegistration(id);
     } else if (action === 'deactivate') {
+      if (!id) return NextResponse.json({ error: 'Registration id is required.' }, { status: 400 });
       result = await deactivateStaffRegistration(id);
     } else if (action === 'whatsapp') {
+      if (!id) return NextResponse.json({ error: 'Registration id is required.' }, { status: 400 });
       result = await sendWhatsAppInvitation(id);
     } else {
       return NextResponse.json({ error: 'Invalid action.' }, { status: 400 });

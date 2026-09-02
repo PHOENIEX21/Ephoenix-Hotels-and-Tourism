@@ -54,6 +54,8 @@ export default function StaffDirectoryManager() {
   const [editForm, setEditForm] = useState({ confirmedRole: '', confirmedDepartment: '', fullName: '', phone: '', originalRole: '', department: '', whatsappConsent: false });
   const [filters, setFilters] = useState({ branch: 'all', department: '', confirmedRole: '', status: '', search: '' });
   const [showFilters, setShowFilters] = useState(false);
+  const [groupLink, setGroupLink] = useState('');
+  const [showGroupSender, setShowGroupSender] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -75,6 +77,7 @@ export default function StaffDirectoryManager() {
       }
       setManager(payload.manager);
       setRegistrations(payload.registrations || []);
+      console.log('[Directory] API payload registrations:', JSON.stringify(payload.registrations, null, 2));
     } catch {
       setError('Unable to load directory.');
     }
@@ -99,6 +102,60 @@ export default function StaffDirectoryManager() {
   useEffect(() => {
     load();
   }, [load]);
+
+  async function handleApproveAll() {
+    setActionLoading('approve-all');
+    setError('');
+    setMessage('');
+    try {
+      const response = await fetch(`/api/staff/directory?action=approve-all`, { method: 'POST' });
+      const payload = await response.json();
+      if (!response.ok) {
+        setError(payload.error || 'Bulk approve failed.');
+        setActionLoading(null);
+        return;
+      }
+      setMessage(`Approved ${payload.registration.count} record${payload.registration.count === 1 ? '' : 's'}.`);
+      await load();
+    } catch {
+      setError('Bulk approve failed.');
+    }
+    setActionLoading(null);
+  }
+
+  async function sendGroupLink() {
+    if (!groupLink.trim()) {
+      setError('Enter a WhatsApp group invite link.');
+      return;
+    }
+    setActionLoading('group-link');
+    setError('');
+    setMessage('');
+    try {
+      const response = await fetch(`/api/staff/directory?action=group-link`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupLink: groupLink.trim() }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        setError(payload.error || 'Unable to send group link.');
+        setActionLoading(null);
+        return;
+      }
+      const result = payload.registration || payload;
+      if (result.opened && result.opened.length > 0) {
+        for (const item of result.opened) {
+          window.open(item.url, '_blank', 'noopener,noreferrer');
+        }
+      }
+      setMessage(`Opening WhatsApp for ${result.count} staff member${result.count === 1 ? '' : 's'}.`);
+      setActionLoading(null);
+    } catch {
+      setError('Unable to send group link.');
+      setActionLoading(null);
+    }
+  }
 
   async function handleAction(id: string, action: 'approve' | 'suspend' | 'deactivate' | 'whatsapp') {
     setActionLoading(id + action);
@@ -187,8 +244,27 @@ export default function StaffDirectoryManager() {
           <p>Total: {registrations.length} {manager?.isGlobalManager ? '· All branches' : '· Branch view'}</p>
         </div>
         <div className="staff-directory-actions">
+          <button className="button button-gold" onClick={handleApproveAll} disabled={actionLoading === 'approve-all'}>Approve all</button>
           <a className="button button-outline" href={`/staff/directory/print?branch=${filters.branch || 'all'}`} target="_blank" rel="noreferrer">Print</a>
-          <button className="button button-outline" onClick={() => window.open(`/api/staff/directory?export=true&branch=${filters.branch || 'all'}`, '_blank')}>Export CSV</button>
+          <button className="button button-outline" onClick={async () => {
+            const url = new URL(`/api/staff/directory?export=true&branch=${encodeURIComponent(filters.branch || 'all')}`, window.location.origin);
+            const response = await fetch(url.toString(), { credentials: 'include' });
+            if (!response.ok) {
+              setError('Export failed.');
+              return;
+            }
+            const blob = await response.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            const disposition = response.headers.get('Content-Disposition');
+            const filenameMatch = disposition && disposition.match(/filename="?([^"]+)"?/);
+            a.download = filenameMatch ? filenameMatch[1] : `staff-directory-${filters.branch || 'all'}-${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(downloadUrl);
+          }}>Export CSV</button>
         </div>
       </header>
 
@@ -212,7 +288,30 @@ export default function StaffDirectoryManager() {
         <button className="button button-outline" onClick={() => setShowFilters((v) => !v)}>
           {showFilters ? 'Hide filters' : 'Filters'}
         </button>
+        <button className="button button-outline" onClick={() => setShowGroupSender((v) => !v)}>
+          {showGroupSender ? 'Hide group link' : 'Send group link'}
+        </button>
       </section>
+
+      {showGroupSender && (
+        <section className="staff-directory-group-sender">
+          <label>
+            WhatsApp group invite link
+            <input
+              value={groupLink}
+              onChange={(e) => setGroupLink(e.target.value)}
+              placeholder="https://chat.whatsapp.com/..."
+              type="url"
+            />
+          </label>
+          <button className="button button-gold" onClick={sendGroupLink} disabled={actionLoading === 'group-link'}>
+            {actionLoading === 'group-link' ? 'Opening WhatsApp...' : 'Send group link'}
+          </button>
+          <p className="staff-directory-group-sender-note">
+            This opens a separate WhatsApp chat for each consented staff member. Press Send on each chat to share the group link.
+          </p>
+        </section>
+      )}
 
       {showFilters && (
         <section className="staff-directory-filters">
@@ -246,7 +345,7 @@ export default function StaffDirectoryManager() {
       )}
 
       {loading ? (
-        <p>Loading directory...</p>
+        <p className="staff-directory-loading">Loading directory...</p>
       ) : registrations.length === 0 ? (
         <p className="staff-directory-empty">No records found.</p>
       ) : (
