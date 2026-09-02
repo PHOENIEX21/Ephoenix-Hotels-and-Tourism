@@ -7,61 +7,25 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  GUEST
-  STAFF
-  ADMIN
-}
-
-enum BookingStatus {
-  PENDING
-  CONFIRMED
-  CANCELLED
-  COMPLETED
-}
-
-enum PaymentStatus {
-  PENDING
-  SUCCESSFUL
-  FAILED
-  REFUNDED
-}
-
-enum DiscountType {
-  PERCENTAGE
-  FIXED
-}
-
-enum RefundStatus {
-  PENDING
-  SUCCESSFUL
-  FAILED
-}
-
-enum OrderStatus {
-  PENDING
-  CONFIRMED
-  CANCELLED
-}
-
 model Hotel {
-  id          String      @id @default(cuid())
-  name        String
-  slug        String      @unique
-  address     String
-  phone       String
-  email       String?
-  description String
-  vatMode     String
-  serviceNote String
-  roomTypes   RoomType[]
-  rooms       Room[]
-  policies    Policy[]
-  halls       EventHall[]
-  createdAt   DateTime    @default(now())
-  offers      Offer[]
-  reviews     Review[]
-  users       User[]
+  id                 String              @id @default(cuid())
+  name               String
+  slug               String              @unique
+  address            String
+  phone              String
+  email              String?
+  description        String
+  vatMode            String
+  serviceNote        String
+  createdAt          DateTime            @default(now())
+  halls              EventHall[]
+  offers             Offer[]
+  policies           Policy[]
+  reviews            Review[]
+  rooms              Room[]
+  roomTypes          RoomType[]
+  staffRegistrations StaffRegistration[]
+  users              User[]
 }
 
 model RoomType {
@@ -74,10 +38,10 @@ model RoomType {
   capacity    Int      @default(2)
   notes       String?
   photoUrls   String[] @default([])
-  hotel       Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
-  rooms       Room[]
   offers      Offer[]
   reviews     Review[]
+  rooms       Room[]
+  hotel       Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
 
   @@unique([hotelId, slug])
 }
@@ -87,9 +51,9 @@ model Room {
   hotelId    String
   roomTypeId String
   number     String
+  bookings   Booking[]
   hotel      Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
   roomType   RoomType  @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
-  bookings   Booking[]
 
   @@unique([hotelId, number])
 }
@@ -116,20 +80,24 @@ model Policy {
 }
 
 model User {
-  id            String     @id @default(cuid())
-  email         String     @unique
-  name          String
-  passwordHash  String?
-  role          Role       @default(GUEST)
-  hotelId       String?
-  emailVerified DateTime?
-  image         String?
-  accounts      Account[]
-  sessions      Session[]
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  auditLogs     AuditLog[]
-  hotel         Hotel?      @relation(fields: [hotelId], references: [id], onDelete: SetNull)
+  id                          String              @id @default(cuid())
+  email                       String              @unique
+  name                        String
+  role                        Role                @default(GUEST)
+  hotelId                     String?
+  createdAt                   DateTime            @default(now())
+  emailVerified               DateTime?
+  image                       String?
+  passwordHash                String?
+  updatedAt                   DateTime            @updatedAt
+  canManageStaff              Boolean             @default(false)
+  isGlobalManager             Boolean             @default(false)
+  accounts                    Account[]
+  auditLogs                   AuditLog[]
+  sessions                    Session[]
+  confirmedStaffRegistrations StaffRegistration[] @relation("StaffRegistrationConfirmedBy")
+  staffRegistration           StaffRegistration?  @relation("StaffRegistrationUser")
+  hotel                       Hotel?              @relation(fields: [hotelId], references: [id])
 }
 
 model Account {
@@ -170,33 +138,32 @@ model Booking {
   id                String        @id @default(cuid())
   reference         String        @unique
   roomId            String
-  guestName         String?
-  guestPhone        String?
   guestEmail        String
   checkIn           DateTime
   checkOut          DateTime
   status            BookingStatus @default(PENDING)
-  depositKobo       Int           @default(0)
-  subtotalKobo      Int           @default(0)
-  vatKobo           Int           @default(0)
-  serviceChargeKobo Int           @default(0)
-  totalKobo         Int           @default(0)
-  currency          String        @default("NGN")
   expiresAt         DateTime?
   createdAt         DateTime      @default(now())
+  currency          String        @default("NGN")
+  depositKobo       Int           @default(0)
+  guestName         String?
+  guestPhone        String?
+  serviceChargeKobo Int           @default(0)
+  subtotalKobo      Int           @default(0)
+  totalKobo         Int           @default(0)
+  vatKobo           Int           @default(0)
   checkedInAt       DateTime?
   checkedOutAt      DateTime?
+  room              Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  orderItem         OrderItem?
+  payments          Payment[]
   refund            Refund?
   review            Review?
-  orderItem         OrderItem?
-  room              Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  payments          Payment[]
 }
 
 model Payment {
   id                String        @id @default(cuid())
   bookingId         String?
-  orderId           String?
   provider          String
   amountKobo        Int
   currency          String        @default("NGN")
@@ -205,6 +172,7 @@ model Payment {
   createdAt         DateTime      @default(now())
   paidAt            DateTime?
   refundedAt        DateTime?
+  orderId           String?
   booking           Booking?      @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   order             Order?        @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
@@ -239,8 +207,8 @@ model OrderItem {
   guests        Int
   quantity      Int      @default(1)
   unitTotalKobo Int
-  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   booking       Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
 }
@@ -298,8 +266,100 @@ model AuditLog {
   entityId  String
   details   String
   createdAt DateTime @default(now())
-  actor     User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  actor     User?    @relation(fields: [actorId], references: [id])
 
   @@index([createdAt])
   @@index([entity, entityId])
+}
+
+model StaffRegistration {
+  id                       String                   @id @default(cuid())
+  hotelId                  String
+  fullName                 String
+  phone                    String?
+  email                    String?
+  profilePhotoUrl          String?
+  originalRole             String
+  department               Department
+  confirmedRole            String?
+  confirmedDepartment      Department?
+  confirmedById            String?
+  confirmedAt              DateTime?
+  staffStatus              StaffStatus              @default(PENDING)
+  whatsappConsent          Boolean                  @default(false)
+  whatsappInvitationStatus WhatsAppInvitationStatus @default(PENDING)
+  invitedAt                DateTime?
+  userId                   String?                  @unique
+  duplicatePhoneFlag       Boolean                  @default(false)
+  submittedAt              DateTime                 @default(now())
+  updatedAt                DateTime                 @updatedAt
+  confirmedBy              User?                    @relation("StaffRegistrationConfirmedBy", fields: [confirmedById], references: [id])
+  hotel                    Hotel                    @relation(fields: [hotelId], references: [id])
+  user                     User?                    @relation("StaffRegistrationUser", fields: [userId], references: [id])
+
+  @@index([hotelId, staffStatus])
+  @@index([phone])
+}
+
+enum Role {
+  GUEST
+  STAFF
+  ADMIN
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESSFUL
+  FAILED
+  REFUNDED
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+enum RefundStatus {
+  PENDING
+  SUCCESSFUL
+  FAILED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+enum StaffStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+}
+
+enum Department {
+  FRONT_OFFICE
+  HOUSEKEEPING
+  RESTAURANT
+  KITCHEN
+  POOL_BAR
+  ACCOUNTS
+  SECURITY
+  MAINTENANCE
+  MANAGEMENT
+  OTHER
+}
+
+enum WhatsAppInvitationStatus {
+  PENDING
+  SENT
+  FAILED
 }
