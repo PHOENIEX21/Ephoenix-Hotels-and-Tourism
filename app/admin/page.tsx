@@ -28,9 +28,10 @@ export default async function AdminPage() {
       { number: '04', label: 'Payments', href: '/staff/reports', description: 'Revenue, refunds and settlements' },
       { number: '05', label: 'Reports', href: '/staff/reports', description: 'Performance across branches' },
       { number: '06', label: 'Staff & roles', href: '/admin/users', description: 'People, access and branches' },
-      { number: '07', label: 'Reviews', href: '/staff/reviews', description: 'Guest feedback and moderation' },
-      { number: '08', label: 'Audit log', href: '/admin/audit', description: 'A record of important changes' },
-      { number: '09', label: 'Settings', href: '/admin/users', description: 'Account and operating defaults' },
+      { number: '07', label: 'Staff Directory', href: '/admin/staff-directory', description: 'View and manage staff records' },
+      { number: '08', label: 'Reviews', href: '/staff/reviews', description: 'Guest feedback and moderation' },
+      { number: '09', label: 'Audit log', href: '/admin/audit', description: 'A record of important changes' },
+      { number: '10', label: 'Settings', href: '/admin/users', description: 'Account and operating defaults' },
   ];
 
   return <main className="admin-workspace">
